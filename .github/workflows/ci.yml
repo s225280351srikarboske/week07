@@ -100,18 +100,52 @@ jobs:
 
 
   # =========================================================
+  # Frontend Tests
+  # =========================================================
+  frontend-test:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+
+    env:
+      VITE_USER_SERVICE_URL: /api/user-service
+      VITE_STUDENT_SERVICE_URL: /api/student-service
+      VITE_LECTURER_SERVICE_URL: /api/lecturer-service
+      VITE_COURSE_SERVICE_URL: /api/course-service
+      VITE_ENROLLMENT_SERVICE_URL: /api/enrollment-service
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm run test:run
+
+
+  # =========================================================
   # Build and Push Docker Images
   # =========================================================
   build-and-push:
     name: Build and Push ${{ matrix.image }}
     runs-on: ubuntu-latest
 
-    # All backend tests must pass before this job starts
+    # Backend and frontend tests must pass before build and push
     needs:
       - backend-test
+      - frontend-test
 
-    # Build and push when code is pushed to main or manually triggered
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # Build only after successful testing
+    if: ${{ success() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
 
     strategy:
       fail-fast: false
@@ -168,4 +202,6 @@ jobs:
           docker push \
             ${{ vars.ACR_LOGIN_SERVER }}/${{ matrix.image }}:latest
 
+
+# Task 7.2C - Frontend testing added to CI pipeline
 # Task 7.1P CI verification 
